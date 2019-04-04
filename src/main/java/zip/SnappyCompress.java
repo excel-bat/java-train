@@ -26,9 +26,11 @@ public class SnappyCompress {
 //    String input = "Hello snappy-java! Snappy-java is a JNI-based wrapper of "
 //            + "Snappy, a fast compresser/decompresser.";
     System.out.println(input.length());
+    long times = System.nanoTime();
     byte[] compressed = Snappy.compress(input.getBytes("UTF-8"));
-    System.out.println(compressed.length);
+
     byte[] uncompressed = Snappy.uncompress(compressed);
+    System.out.println("==== 耗时=== "+ (System.nanoTime()-times));
 
     String result = new String(uncompressed, "UTF-8");
     System.out.println(result);
