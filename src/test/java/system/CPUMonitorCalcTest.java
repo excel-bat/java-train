@@ -22,7 +22,7 @@ public class CPUMonitorCalcTest {
           long bac = 1000000;
           bac = bac >> 1;
         }
-      }).start();;
+      }).start();
     }
     while (true) {
       Thread.sleep(5000);

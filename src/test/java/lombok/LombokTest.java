@@ -7,6 +7,8 @@ package lombok;
 
 import lombok.extern.java.Log;
 
+;
+
 /**
  * lombok 测试
  *
