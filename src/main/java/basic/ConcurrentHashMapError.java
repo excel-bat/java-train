@@ -1,8 +1,3 @@
-/**
- * Copyright (C) 2008-2019 All Rights Reserved.
- */
-
-
 package basic;
 
 import java.util.Map;
@@ -22,11 +17,13 @@ public class ConcurrentHashMapError {
   }
 
   static int fibonacci(int i) {
-    if (i == 0)
+	  if (i == 0) {
       return i;
-
-    if (i == 1)
-      return 1;
+	  }
+	
+	  if (i == 1) {
+		  return 1;
+	  }
 
     return concurrentMap.computeIfAbsent(i, (key) -> {
       System.out.println("Value is " + key);
