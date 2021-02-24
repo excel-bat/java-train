@@ -1,10 +1,9 @@
 package io;
 
-import java.io.RandomAccessFile;
 import java.io.File;
-import java.io.IOException;
 import java.io.FileNotFoundException;
-import java.util.ResourceBundle;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 
 /**
  * <p>Title: BufferedRandomAccessFile</p>
@@ -52,6 +51,62 @@ public class BufferedRandomAccessFile extends RandomAccessFile {
 
     public BufferedRandomAccessFile(File file, String mode, int bufbitlen) throws IOException, FileNotFoundException {
         this(file.getPath(), mode, bufbitlen);
+    }
+    
+    public static void main(String[] args) throws IOException {
+        long readfilelen = 0;
+        BufferedRandomAccessFile brafReadFile, brafWriteFile;
+        
+        brafReadFile = new BufferedRandomAccessFile("fd", "rw");
+        readfilelen = brafReadFile.initfilelen;
+        brafWriteFile = new BufferedRandomAccessFile(".\\STKAITI.001", "rw", 10);
+        
+        byte buf[] = new byte[1024];
+        int readcount;
+        
+        long start = System.currentTimeMillis();
+        
+        while ((readcount = brafReadFile.read(buf)) != -1) {
+            brafWriteFile.write(buf, 0, readcount);
+        }
+        
+        brafWriteFile.close();
+        brafReadFile.close();
+        
+        System.out.println("BufferedRandomAccessFile Copy & Write File: "
+                + brafReadFile.filename
+                + "    FileSize: "
+                + java.lang.Integer.toString((int) readfilelen >> 1024)
+                + " (KB)    "
+                + "Spend: "
+                + (double) (System.currentTimeMillis() - start) / 1000
+                + "(s)");
+        
+        java.io.FileInputStream fdin = new java.io.FileInputStream("C:\\WINNT\\Fonts\\STKAITI.TTF");
+        java.io.BufferedInputStream bis = new java.io.BufferedInputStream(fdin, 1024);
+        java.io.DataInputStream dis = new java.io.DataInputStream(bis);
+        
+        java.io.FileOutputStream fdout = new java.io.FileOutputStream(".\\STKAITI.002");
+        java.io.BufferedOutputStream bos = new java.io.BufferedOutputStream(fdout, 1024);
+        java.io.DataOutputStream dos = new java.io.DataOutputStream(bos);
+        
+        start = System.currentTimeMillis();
+        
+        for (int i = 0; i < readfilelen; i++) {
+            dos.write(dis.readByte());
+        }
+        
+        dos.close();
+        dis.close();
+        
+        System.out.println("DataBufferedios Copy & Write File: "
+                + brafReadFile.filename
+                + "    FileSize: "
+                + java.lang.Integer.toString((int) readfilelen >> 1024)
+                + " (KB)    "
+                + "Spend: "
+                + (double) (System.currentTimeMillis() - start) / 1000
+                + "(s)");
     }
 
     private void init(String name, String mode, int bufbitlen) throws IOException {
@@ -114,7 +169,7 @@ public class BufferedRandomAccessFile extends RandomAccessFile {
     public boolean append(byte bw) throws IOException {
         return this.write(bw, this.fileendpos + 1);
     }
-
+    
     public boolean write(byte bw, long pos) throws IOException {
 
         if ((pos >= this.bufstartpos) && (pos <= this.bufendpos)) { // write pos in buf
@@ -143,40 +198,42 @@ public class BufferedRandomAccessFile extends RandomAccessFile {
         this.curpos = pos;
         return true;
     }
-
+    
+    @Override
     public void write(byte b[], int off, int len) throws IOException {
-
+        
         long writeendpos = this.curpos + len - 1;
-
+        
         if (writeendpos <= this.bufendpos) { // b[] in cur buf
             System.arraycopy(b, off, this.buf, (int)(this.curpos - this.bufstartpos), len);
             this.bufdirty = true;
             this.bufusedsize = (int)(writeendpos - this.bufstartpos + 1);//(int)(this.curpos - this.bufstartpos + len - 1);
-
+            
         } else { // b[] not in cur buf
             super.seek(this.curpos);
             super.write(b, off, len);
         }
-
+        
         if (writeendpos > this.fileendpos) {
             this.fileendpos = writeendpos;
         }
-
+        
         this.seek(writeendpos+1);
     }
-
+    
+    @Override
     public int read(byte b[], int off, int len) throws IOException {
-
+        
         long readendpos = this.curpos + len - 1;
-
+        
         if (readendpos <= this.bufendpos && readendpos <= this.fileendpos ) { // read in buf
             System.arraycopy(this.buf, (int)(this.curpos - this.bufstartpos), b, off, len);
         } else { // read b[] size > buf[]
-
+            
             if (readendpos > this.fileendpos) { // read b[] part in file
                 len = (int)(this.length() - this.curpos + 1);
             }
-
+            
             super.seek(this.curpos);
             len = super.read(b, off, len);
             readendpos = this.curpos + len - 1;
@@ -184,26 +241,29 @@ public class BufferedRandomAccessFile extends RandomAccessFile {
         this.seek(readendpos + 1);
         return len;
     }
-
+    
+    @Override
     public void write(byte b[]) throws IOException {
         this.write(b, 0, b.length);
     }
-
+    
+    @Override
     public int read(byte b[]) throws IOException {
         return this.read(b, 0, b.length);
     }
-
+    
+    @Override
     public void seek(long pos) throws IOException {
-
+        
         if ((pos < this.bufstartpos) || (pos > this.bufendpos)) { // seek pos not in buf
             this.flushbuf();
-
+            
             if ((pos >= 0) && (pos <= this.fileendpos) && (this.fileendpos != 0)) { // seek pos in file (file length > 0)
                 this.bufstartpos =  pos & this.bufmask;
                 this.bufusedsize = this.fillbuf();
-
+                
             } else if (((pos == 0) && (this.fileendpos == 0)) || (pos == this.fileendpos + 1)) { // seek pos is append pos
-
+                
                 this.bufstartpos = pos;
                 this.bufusedsize = 0;
             }
@@ -211,11 +271,13 @@ public class BufferedRandomAccessFile extends RandomAccessFile {
         }
         this.curpos = pos;
     }
-
+    
+    @Override
     public long length() throws IOException {
         return this.max(this.fileendpos + 1, this.initfilelen);
     }
-
+    
+    @Override
     public void setLength(long newLength) throws IOException {
         if (newLength > 0) {
             this.fileendpos = newLength - 1;
@@ -224,73 +286,22 @@ public class BufferedRandomAccessFile extends RandomAccessFile {
         }
         super.setLength(newLength);
     }
+    
+    @Override
     public long getFilePointer() throws IOException {
         return this.curpos;
     }
-
+    
     private long max(long a, long b) {
-        if (a > b) return a;
+        if (a > b) {
+            return a;
+        }
         return b;
     }
-
+    
+    @Override
     public void close() throws IOException {
         this.flushbuf();
         super.close();
-    }
-
-    public static void main(String[] args) throws IOException {
-        long readfilelen = 0;
-        BufferedRandomAccessFile brafReadFile, brafWriteFile;
-
-        brafReadFile = new BufferedRandomAccessFile("fd","rw");
-        readfilelen = brafReadFile.initfilelen;
-        brafWriteFile = new BufferedRandomAccessFile(".\\STKAITI.001", "rw", 10);
-
-        byte buf[] = new byte[1024];
-        int readcount;
-
-        long start = System.currentTimeMillis();
-
-        while((readcount = brafReadFile.read(buf)) != -1) {
-            brafWriteFile.write(buf, 0, readcount);
-        }
-
-        brafWriteFile.close();
-        brafReadFile.close();
-
-        System.out.println("BufferedRandomAccessFile Copy & Write File: "
-                           + brafReadFile.filename
-                           + "    FileSize: "
-                           + java.lang.Integer.toString((int)readfilelen >> 1024)
-                           + " (KB)    "
-                           + "Spend: "
-                           +(double)(System.currentTimeMillis()-start) / 1000
-                           + "(s)");
-
-        java.io.FileInputStream fdin = new java.io.FileInputStream("C:\\WINNT\\Fonts\\STKAITI.TTF");
-        java.io.BufferedInputStream bis = new java.io.BufferedInputStream(fdin, 1024);
-        java.io.DataInputStream dis = new java.io.DataInputStream(bis);
-
-        java.io.FileOutputStream fdout = new java.io.FileOutputStream(".\\STKAITI.002");
-        java.io.BufferedOutputStream bos = new java.io.BufferedOutputStream(fdout, 1024);
-        java.io.DataOutputStream dos = new java.io.DataOutputStream(bos);
-
-        start = System.currentTimeMillis();
-
-        for (int i = 0; i < readfilelen; i++) {
-            dos.write(dis.readByte());
-        }
-
-        dos.close();
-        dis.close();
-
-        System.out.println("DataBufferedios Copy & Write File: "
-                           + brafReadFile.filename
-                           + "    FileSize: "
-                           + java.lang.Integer.toString((int)readfilelen >> 1024)
-                           + " (KB)    "
-                           + "Spend: "
-                           + (double)(System.currentTimeMillis()-start) / 1000
-                           + "(s)");
     }
 }
